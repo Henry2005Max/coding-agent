@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-This is an intermediate-level AI engineering project. The agent receives a goal, writes Python code to achieve it, executes that code safely, and if it fails — it reads the error, reflects on what went wrong, and tries again. It does not stop until the code works or it hits a maximum iteration limit.
+This is an intermediate-level AI engineering project. The agent receives a goal, writes Python code to achieve it, executes that code safely, and if it fails, it reads the error, reflects on what went wrong, and tries again. It does not stop until the code works or it hits a maximum iteration limit.
 
 **Core concepts this project teaches:**
 - Agentic loops (Plan → Execute → Test → Reflect)
@@ -201,12 +201,12 @@ Entry point. Handles:
 | Day | What We Built | Status |
 |-----|--------------|--------|
 | Day 1 | Project structure, config, executor, agent loop, main entry point | ✅ Complete |
-| Day 2 | Execution sandbox with CPU/memory limits | 🔲 Upcoming |
-| Day 3 | Test runner + structured failure detection | 🔲 Upcoming |
-| Day 4 | Short-term memory + reflection mechanism | 🔲 Upcoming |
-| Day 5 | Long-term memory with vector embeddings | 🔲 Upcoming |
-| Day 6 | Circuit breaker + advanced safety layer | 🔲 Upcoming |
-| Day 7 | Polish, CLI improvements, full demo | 🔲 Upcoming |
+| Day 2 | Execution sandbox with CPU/memory limits |  Upcoming |
+| Day 3 | Test runner + structured failure detection |  Upcoming |
+| Day 4 | Short-term memory + reflection mechanism |  Upcoming |
+| Day 5 | Long-term memory with vector embeddings |  Upcoming |
+| Day 6 | Circuit breaker + advanced safety layer |  Upcoming |
+| Day 7 | Polish, CLI improvements, full demo |  Upcoming |
 
 ---
 
@@ -231,7 +231,7 @@ To:
 def extract_code(text: str):
 ```
 
-**Lesson:** Always check which Python version introduced a feature before using it. Type hints are cosmetic — removing them does not break functionality.
+**Lesson:** Always check which Python version introduced a feature before using it. Type hints are cosmetic, removing them does not break functionality.
 
 ---
 
@@ -262,13 +262,13 @@ anthropic.BadRequestError: 400 - Your credit balance is too low
 
 **Virtual environment:** An isolated Python installation for a specific project. Keeps dependencies from conflicting with other projects or your system Python. Always activate with `source venv/bin/activate` before working.
 
-**python-dotenv:** Loads variables from a `.env` file into `os.environ`. The pattern `os.getenv("KEY")` then reads them. This is the standard way to handle secrets — never hardcode API keys.
+**python-dotenv:** Loads variables from a `.env` file into `os.environ`. The pattern `os.getenv("KEY")` then reads them. This is the standard way to handle secrets, never hardcode API keys.
 
 **Subprocess execution:** Running code in a separate process means if the code crashes, it does not crash the agent. The parent process captures stdout and stderr and reports back.
 
 **Dataclass:** A Python class decorated with `@dataclass` that automatically generates `__init__`, `__repr__`, and other boilerplate. Used for `ExecutionResult` to cleanly bundle multiple return values.
 
-**Agentic loop:** The core pattern of autonomous AI systems. Instead of a single request-response, the agent acts, observes the result, and decides what to do next — repeatedly, until the goal is achieved.
+**Agentic loop:** The core pattern of autonomous AI systems. Instead of a single request-response, the agent acts, observes the result, and decides what to do next, repeatedly, until the goal is achieved.
 
 **Conversation history:** Claude has no memory between API calls. To give it context, we send the full history of messages every time. This is how it "remembers" its previous attempts and errors.
 
