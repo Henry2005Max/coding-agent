@@ -19,3 +19,9 @@ MEMORY_DIR = os.path.join(BASE_DIR, "memory")
 # Ensure directories exist
 os.makedirs(LOGS_DIR, exist_ok=True)
 os.makedirs(MEMORY_DIR, exist_ok=True)
+
+# Sandbox Configuration
+CPU_TIME_LIMIT = 5  # seconds of actual CPU time
+MEMORY_LIMIT_MB = 256  # megabytes
+FILE_SIZE_LIMIT_MB = 10  # megabytes per file
+EXECUTION_TIMEOUT = 10  # wall-clock seconds
