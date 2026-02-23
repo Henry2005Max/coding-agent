@@ -1,1 +1,272 @@
+# Daily Development Log
+
+This file tracks the day-by-day development of the self-improving coding agent, including every decision, bug fix, and lesson learned.
+
+-----
+
+## Day 1 — Foundation & Project Setup
+
+**Date:** February 17, 2026  
+**Duration:** ~3 hours  
+**Status:** ✅ Complete
+
+### Goals
+
+Build the foundation: project structure, virtual environment, basic agent loop, code executor, and Claude API integration.
+
+### What We Built
+
+#### 1. Project Structure
+
+```
+coding-agent/
+├── src/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── agent.py
+│   └── executor.py
+├── tests/
+├── memory/
+├── logs/
+├── venv/
+├── main.py
+├── .env
+├── .gitignore
+└── README.md
+```
+
+#### 2. Configuration System (`src/config.py`)
+
+- Environment variable loading with `python-dotenv`
+- API key management (never hardcoded)
+- Model selection (Claude Sonnet 4.5)
+- Max iterations and token limits
+- Directory path configuration
+
+**Key code:**
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+MODEL = "claude-sonnet-4-5-20250929"
+MAX_ITERATIONS = 5
+MAX_TOKENS = 4096
+```
+
+#### 3. Code Executor (`src/executor.py`)
+
+Basic but functional subprocess-based execution:
+
+- Writes code to temporary file
+- Runs in isolated subprocess
+- Captures stdout/stderr
+- Enforces timeout (10 seconds)
+- Cleans up temp files
+- Returns structured `ExecutionResult` dataclass
+
+**Security features (Day 1):**
+
+- Subprocess isolation (crash doesn’t kill agent)
+- Timeout enforcement
+- Working directory restricted to logs/
+- Temp file cleanup with try/finally
+
+#### 4. Static Safety Checker (`is_code_safe()`)
+
+Scans code for dangerous patterns before execution:
+
+- File deletion (`os.remove`, `rmdir`)
+- Network access (`socket`, `requests`, `urllib`)
+- Dynamic code execution (`eval`, `exec`)
+- Subprocess spawning
+- File system access (`open()`)
+
+Returns `(bool, message)` tuple.
+
+#### 5. Agent Loop (`src/agent.py`)
+
+The brain of the system. Key functions:
+
+**`extract_code(text)`**
+
+- Regex pattern: ````python\n(.*?)````
+- Extracts code from Claude’s markdown response
+
+**`build_system_prompt()`**
+
+- Tells Claude to wrap code in markdown
+- No external packages, only stdlib
+- Fix errors if given feedback
+
+**`build_user_prompt(goal, history)`**
+
+- First attempt: just the goal
+- Subsequent attempts: goal + full failure history
+- Enables reflection and self-correction
+
+**`run_agent(goal)`**
+
+- Loop up to MAX_ITERATIONS
+- Call Claude → extract code → safety check → execute → log
+- Stop on success or max iterations
+- Uses conversation history for context
+
+**`log_attempt()`**
+
+- Saves JSON file per attempt
+- Records: goal, code, success, output, error, timestamp
+
+#### 6. Main Entry Point (`main.py`)
+
+- Interactive mode (prompts for goal)
+- Inline mode (goal as CLI argument)
+- Pretty terminal UI with `rich` library
+
+#### 7. Dependencies
+
+```bash
+pip install anthropic python-dotenv rich
+```
+
+### Step-by-Step Commands Used
+
+```bash
+# 1. Create project folder
+mkdir coding-agent && cd coding-agent
+
+# 2. Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# 3. Upgrade pip
+pip install --upgrade pip
+
+# 4. Install dependencies
+pip install anthropic python-dotenv rich
+
+# 5. Create structure
+mkdir -p src tests memory logs
+touch src/__init__.py src/agent.py src/executor.py src/config.py
+touch main.py .env .gitignore
+
+# 6. Configure .gitignore
+echo ".env
+venv/
+__pycache__/
+*.pyc
+logs/
+memory/" > .gitignore
+
+# 7. Add API key to .env
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+
+# 8. Initialize git
+git init
+git add .
+git commit -m "Day 1: project structure, config, executor, agent loop"
+```
+
+### Bugs Encountered & Fixed
+
+#### Bug 1: Python 3.9 Type Hint Syntax Error
+
+**File:** `src/agent.py`, line 16
+
+**Error:**
+
+```
+TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'
+```
+
+**Root cause:**  
+Used `str | None` union syntax introduced in Python 3.10. We’re running Python 3.9.6.
+
+**Fix:**
+
+```python
+# Before (Python 3.10+ only)
+def extract_code(text: str) -> str | None:
+
+# After (Python 3.9 compatible)
+def extract_code(text: str):
+```
+
+**Lesson learned:**  
+Always check which Python version introduced a feature. Type hints are optional and removing them doesn’t break functionality.
+
+#### Bug 2: Insufficient API Credits
+
+**Error:**
+
+```
+anthropic.BadRequestError: 400 - Your credit balance is too low
+```
+
+**Root cause:**  
+Anthropic API requires credits. New accounts start with $0 balance.
+
+**Fix:**  
+Add credits at console.anthropic.com → Settings → Billing  
+Recommendation: $5 is sufficient for development (hundreds of API calls)
+
+**Status:**  
+Unresolved during Day 1 session (payment card issues). Agent built and tested successfully, but cannot run live until credits added.
+
+### Concepts Learned
+
+**Virtual environments:**  
+Isolated Python installations per project. Prevents dependency conflicts. Always activate before work: `source venv/bin/activate`
+
+**Environment variables:**  
+Store secrets in `.env` file, load with `python-dotenv`, access with `os.getenv()`. Never hardcode API keys.
+
+**Subprocess execution:**  
+Run code in separate process. If it crashes, parent survives. Use `subprocess.run()` with `capture_output=True`.
+
+**Dataclasses:**  
+`@dataclass` decorator auto-generates `__init__`, `__repr__`, etc. Clean way to bundle related data.
+
+**Agentic loops:**  
+Core AI pattern: act → observe → reflect → repeat until goal achieved. Different from single request-response.
+
+**Conversation history:**  
+Claude has no memory between calls. Send full message history each time to maintain context.
+
+### Testing Results
+
+All components loaded successfully:
+
+```bash
+python3 -c "from src.config import ANTHROPIC_API_KEY; print('Config OK')"
+python3 -c "from src.executor import execute_code; print('Executor OK')"
+python3 -c "from src.agent import run_agent; print('Agent OK')"
+```
+
+Live execution blocked by API credits (see Bug 2).
+
+### Files Created
+
+- `src/__init__.py` — 0 lines (empty package marker)
+- `src/config.py` 
+- `src/executor.py`
+- `src/agent.py` 
+- `main.py` — 
+- `.env` — 1 line (API key)
+- `.gitignore` 
+- `README.md` 
+
+
+
+### Next Steps (Day 2)
+
+- Add CPU/memory/file size limits
+- Implement resource enforcement
+- Test with malicious code (infinite loops, memory hogs)
+- Make sandbox production-grade
+
+-----
 
