@@ -139,18 +139,6 @@ Iteration 2:
         ↓
   ... repeat up to MAX_ITERATIONS (default: 5)
 ```
-
----
-## Screenshots
-
-### All Tests Passing
-![All Tests Passed](screenshots/passing_test.png)
-*The agent successfully wrote code with tests, and all 2 tests passed.*
-
-### Test Failures with Detailed Feedback
-![Test Failures](https://github.com/Henry2005Max/coding-agent/blob/main/screenshots/Screenshot%20Failing%20Test.png)
-*When tests fail, the agent sees exactly which tests failed and what the expected vs actual values were.*
-
 ---
 ## File-by-File Explanation
 
