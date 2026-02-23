@@ -48,6 +48,7 @@ coding-agent/
 | python-dotenv | Load API key from .env file |
 | rich | Pretty terminal output |
 | resource module | CPU/memory limits (Unix systems) |
+| unittest | Built-in test framework |
 
 ---
 
