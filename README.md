@@ -148,7 +148,7 @@ Iteration 2:
 *The agent successfully wrote code with tests, and all 2 tests passed.*
 
 ### Test Failures with Detailed Feedback
-![Test Failures](screenshots/failing_test.png)
+![Test Failures](https://github.com/Henry2005Max/coding-agent/blob/main/screenshots/Screenshot%20Failing%20Test.png)
 *When tests fail, the agent sees exactly which tests failed and what the expected vs actual values were.*
 
 ---
