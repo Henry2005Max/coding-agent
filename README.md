@@ -141,7 +141,17 @@ Iteration 2:
 ```
 
 ---
+## Screenshots
 
+### All Tests Passing
+![All Tests Passed](screenshots/passing_test.png)
+*The agent successfully wrote code with tests, and all 2 tests passed.*
+
+### Test Failures with Detailed Feedback
+![Test Failures](screenshots/failing_test.png)
+*When tests fail, the agent sees exactly which tests failed and what the expected vs actual values were.*
+
+---
 ## File-by-File Explanation
 
 ### `src/config.py`
@@ -204,13 +214,16 @@ Entry point. Handles:
 |-----|--------------|--------|
 | Day 1 | Project structure, config, executor, agent loop, main entry point | ✅ Complete |
 | Day 2 | Execution sandbox with CPU/memory limits | ✅ Complete |
-| Day 3 | Test runner + structured failure detection |  Upcoming |
+| Day 3 | Test runner + structured failure detection | ✅ Complete |
 | Day 4 | Short-term memory + reflection mechanism |  Upcoming |
 | Day 5 | Long-term memory with vector embeddings |  Upcoming |
 | Day 6 | Circuit breaker + advanced safety layer |  Upcoming |
 | Day 7 | Polish, CLI improvements, full demo |  Upcoming |
 
 ---
+
+## Quick Summary of Each Day
+
 ## Day 1 — Foundation
 
 **Date:** February 17, 2026
@@ -425,6 +438,48 @@ With Day 2's sandbox:
 
 ---
 
+## Key Features
+
+### 🔒 Security
+- Multi-layer sandbox with OS-enforced limits
+- Static code analysis before execution
+- Subprocess isolation
+- Resource caps (CPU, memory, disk)
+- Filesystem and network restrictions
+
+### 🧪 Testing
+- Automatic test generation
+- unittest framework integration
+- Structured pass/fail results
+- Expected vs actual value reporting
+- Per-test granular feedback
+
+### 🔄 Self-Improvement
+- Conversation history for context
+- Failure logging with full details
+- Iterative refinement loop
+- Reflection on errors
+- Max iteration circuit breaker
+
+### 📊 Observability
+- JSON logs for every attempt
+- Rich terminal UI with syntax highlighting
+- Execution timing
+- Success/failure tracking
+
+---
+
+
+### Day 3 — Test Runner (Feb 23, 2026)
+Integrated Python's unittest framework. Agent now writes tests alongside code and receives structured pass/fail feedback per test.
+
+**Key achievement:** Precise, actionable feedback instead of vague errors.
+
+**Before:** "RecursionError on line 4"  
+**After:** "test_factorial_of_5 failed: expected 120, got 206"
+
+---
+
 ## Security Notes
 
 - `.env` is in `.gitignore` — your API key is never pushed to GitHub
@@ -439,5 +494,5 @@ With Day 2's sandbox:
 ## Author
 
 Ehindero Henry
-AI Engineering learning project — Day 1 of building a self-improving coding agent.
+AI Engineering learning project — Day 4 of building a self-improving coding agent.
 Started: February 17, 2026
