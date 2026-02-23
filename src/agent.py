@@ -4,6 +4,7 @@ import re
 import os
 from datetime import datetime
 from rich.console import Console
+from src.test_runner import run_tests, TestResult
 from rich.panel import Panel
 from rich.syntax import Syntax
 from src.config import ANTHROPIC_API_KEY, MODEL, MAX_ITERATIONS, MAX_TOKENS
@@ -41,11 +42,33 @@ def build_system_prompt() -> str:
     return """You are an expert Python coding agent. Your job is to write correct, working Python code to achieve a given goal.
 
 Rules you must follow:
-1. Always wrap your code in ```python ... ``` markdown blocks
-2. Write complete, runnable code — no placeholders or TODOs
-3. Only use Python standard library — no external packages
-4. Keep code simple and focused on the goal
-5. If you are given an error from a previous attempt, fix it
+1. Always write code WITH unit tests using Python's unittest framework
+2. Define the main function/logic first, then create a test class that inherits from unittest.TestCase
+3. Write multiple test cases covering different scenarios (normal cases, edge cases, error cases)
+4. Wrap everything in ```python ... ``` markdown blocks
+5. Only use Python standard library — no external packages
+6. Keep code simple and focused on the goal
+7. If you are given test failure details, analyze them and fix the code
+
+Example structure:
+```python
+import unittest
+
+# Your main code here
+def my_function(x):
+    return x * 2
+
+# Your tests here
+class TestMyFunction(unittest.TestCase):
+    def test_positive_number(self):
+        self.assertEqual(my_function(5), 10)
+    
+    def test_zero(self):
+        self.assertEqual(my_function(0), 0)
+    
+    def test_negative(self):
+        self.assertEqual(my_function(-3), -6)
+```
 
 When you respond, always:
 - Briefly explain what you are doing (1-2 sentences)
