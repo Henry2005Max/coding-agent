@@ -47,6 +47,7 @@ coding-agent/
 | Anthropic SDK | Claude API calls |
 | python-dotenv | Load API key from .env file |
 | rich | Pretty terminal output |
+| resource module | CPU/memory limits (Unix systems) |
 
 ---
 
@@ -201,7 +202,7 @@ Entry point. Handles:
 | Day | What We Built | Status |
 |-----|--------------|--------|
 | Day 1 | Project structure, config, executor, agent loop, main entry point | ✅ Complete |
-| Day 2 | Execution sandbox with CPU/memory limits |  Upcoming |
+| Day 2 | Execution sandbox with CPU/memory limits | ✅ Complete |
 | Day 3 | Test runner + structured failure detection |  Upcoming |
 | Day 4 | Short-term memory + reflection mechanism |  Upcoming |
 | Day 5 | Long-term memory with vector embeddings |  Upcoming |
@@ -209,7 +210,38 @@ Entry point. Handles:
 | Day 7 | Polish, CLI improvements, full demo |  Upcoming |
 
 ---
+## Day 1 — Foundation
 
+**Date:** February 17, 2026
+
+### What We Built
+- Complete project structure (folders, files, .gitignore)
+- Virtual environment setup
+- Configuration system with environment variables
+- Basic code executor with subprocess isolation and timeout
+- Static code safety checker
+- Main agent loop with Claude API integration
+- Conversation history and reflection
+- JSON logging system
+- Rich terminal UI
+
+---
+
+## Important Concepts Learned (Day 1)
+
+**Virtual environment:** An isolated Python installation for a specific project. Keeps dependencies from conflicting with other projects or your system Python. Always activate with `source venv/bin/activate` before working.
+
+**python-dotenv:** Loads variables from a `.env` file into `os.environ`. The pattern `os.getenv("KEY")` then reads them. This is the standard way to handle secrets, never hardcode API keys.
+
+**Subprocess execution:** Running code in a separate process means if the code crashes, it does not crash the agent. The parent process captures stdout and stderr and reports back.
+
+**Dataclass:** A Python class decorated with `@dataclass` that automatically generates `__init__`, `__repr__`, and other boilerplate. Used for `ExecutionResult` to cleanly bundle multiple return values.
+
+**Agentic loop:** The core pattern of autonomous AI systems. Instead of a single request-response, the agent acts, observes the result, and decides what to do next, repeatedly, until the goal is achieved.
+
+**Conversation history:** Claude has no memory between API calls. To give it context, we send the full history of messages every time. This is how it "remembers" its previous attempts and errors.
+
+---
 ## Bugs Fixed During Day 1
 
 ### Bug 1: Python 3.9 type hint syntax error
@@ -247,6 +279,151 @@ anthropic.BadRequestError: 400 - Your credit balance is too low
 
 ---
 
+### Concepts Learned
+- Virtual environments for project isolation
+- Environment variables for secrets management
+- Subprocess execution for code isolation
+- Dataclasses for clean data structures
+- Agentic loops (act → observe → reflect → repeat)
+- Conversation history for context retention
+
+---
+
+## Day 2 — Production-Grade Sandbox
+
+**Date:** February 23, 2026
+
+### The Problem We Solved
+Day 1's executor had a fatal weakness: malicious or buggy code could still consume 100% CPU, use all RAM, write gigabytes to disk, and run for the full timeout destroying performance.
+
+**Proof:**
+```python
+# Day 1: This runs at 100% CPU for 3 full seconds
+while True:
+    pass
+```
+
+### The Solution: Multi-Layer Resource Limits
+
+We upgraded from basic timeout-only protection to a **6-layer security system**:
+
+#### Layer 1: CPU Time Limit (5 seconds)
+- Uses `resource.RLIMIT_CPU` to track actual CPU time
+- Kills infinite loops after 5 seconds of CPU usage
+- **Key insight:** CPU time ≠ wall-clock time. Sleeping uses 0 CPU time.
+
+#### Layer 2: Memory Limit (256MB)
+- Uses `resource.RLIMIT_AS` (address space limit)
+- Caps total memory allocation
+- **Platform note:** macOS sometimes ignores this; Linux respects it strictly
+
+#### Layer 3: File Size Limit (10MB per file)
+- Uses `resource.RLIMIT_FSIZE`
+- Prevents gigabyte file writes
+
+#### Layer 4: Wall-Clock Timeout (10 seconds)
+- Original Day 1 protection, kept as backup
+- Kills even low-CPU processes after 10 seconds
+
+#### Layer 5: Filesystem Restriction
+- Code runs with `cwd=LOGS_DIR`
+- Limits file operations to logs directory only
+
+#### Layer 6: Environment Isolation
+- Clears `PYTHONPATH`
+- Passes minimal environment variables
+- Prevents access to system packages
+
+### Technical Implementation: Wrapper Script Pattern
+
+Instead of directly running user code, we use a two-file approach:
+
+```python
+# wrapper.py (generated dynamically)
+import resource
+resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
+resource.setrlimit(resource.RLIMIT_AS, (256*1024*1024, 256*1024*1024))
+resource.setrlimit(resource.RLIMIT_FSIZE, (10*1024*1024, 10*1024*1024))
+exec(compile(open('user_code.py').read(), 'user_code.py', 'exec'))
+```
+
+**Why this works:** Resource limits must be set *before* code runs. The wrapper guarantees limits are in place before the first line executes.
+
+### Error Detection
+
+Different failures produce different exit codes:
+- **Exit 0:** Success ✅
+- **Exit -24 (SIGXCPU, macOS):** CPU limit exceeded
+- **Exit 158 (Linux):** CPU limit exceeded
+- **Exit -9 or 137 (SIGKILL):** Memory limit exceeded
+- **Exit 153:** File size exceeded
+
+We detect these and return user-friendly error messages.
+
+### Testing Results
+
+**Test 1: Infinite Loop**
+```python
+while True: pass
+```
+✅ Killed after ~5 seconds with "CPU time limit exceeded"  
+❌ Day 1: Would run at 100% CPU for full 10-second timeout
+
+**Test 2: Normal Code**
+```python
+def factorial(n):
+    return 1 if n <= 1 else n * factorial(n-1)
+print(f"Factorial of 5 is {factorial(5)}")
+```
+✅ `ExecutionResult(success=True, output='Factorial of 5 is 120', time=0.10s)`
+
+### Files Modified
+
+**src/executor.py** — Complete rewrite (255 lines)
+- Added `get_resource_limit_script()` function
+- Rewrote `execute_code()` with wrapper pattern
+- Added exit code detection
+- Added platform-aware error handling
+- Environment isolation
+
+**src/config.py** — Added sandbox configuration
+```python
+CPU_TIME_LIMIT = 5
+MEMORY_LIMIT_MB = 256
+FILE_SIZE_LIMIT_MB = 10
+EXECUTION_TIMEOUT = 10
+```
+
+### Concepts Learned Day 2
+
+**Resource limits:** OS-level caps on CPU time, memory, file sizes enforced by the kernel.
+
+**CPU time vs wall-clock time:** CPU time = actual compute usage. Sleeping/waiting doesn't count.
+
+**Exit codes and signals:** Process killed by signal N returns exit code -N. SIGXCPU (24) → exit -24.
+
+**Wrapper script pattern:** Guarantee setup runs before user code by generating a wrapper that does setup then executes via `exec()`.
+
+**Platform differences:** macOS and Linux handle resource limits differently. Always test your target platform.
+
+**Production-grade:** With these protections, the agent can run unsupervised without freezing machines or filling disks.
+
+### Why This Matters
+
+Without Day 2's protections, an autonomous agent could:
+- ❌ Freeze your machine (100% CPU)
+- ❌ Crash from out-of-memory
+- ❌ Fill your disk (gigabyte files)
+- ❌ Cost money (expensive compute for minutes)
+
+With Day 2's sandbox:
+- ✅ CPU limited to 5 seconds
+- ✅ Memory capped at 256MB
+- ✅ Files limited to 10MB
+- ✅ Safe to run unsupervised
+
+---
+
 ## Security Notes
 
 - `.env` is in `.gitignore` — your API key is never pushed to GitHub
@@ -255,22 +432,6 @@ anthropic.BadRequestError: 400 - Your credit balance is too low
 - `memory/` is in `.gitignore` — memory files stay local
 - The executor restricts code to run only inside the `logs/` directory
 - Static analysis blocks dangerous operations before execution
-
----
-
-## Important Concepts Learned (Day 1)
-
-**Virtual environment:** An isolated Python installation for a specific project. Keeps dependencies from conflicting with other projects or your system Python. Always activate with `source venv/bin/activate` before working.
-
-**python-dotenv:** Loads variables from a `.env` file into `os.environ`. The pattern `os.getenv("KEY")` then reads them. This is the standard way to handle secrets, never hardcode API keys.
-
-**Subprocess execution:** Running code in a separate process means if the code crashes, it does not crash the agent. The parent process captures stdout and stderr and reports back.
-
-**Dataclass:** A Python class decorated with `@dataclass` that automatically generates `__init__`, `__repr__`, and other boilerplate. Used for `ExecutionResult` to cleanly bundle multiple return values.
-
-**Agentic loop:** The core pattern of autonomous AI systems. Instead of a single request-response, the agent acts, observes the result, and decides what to do next, repeatedly, until the goal is achieved.
-
-**Conversation history:** Claude has no memory between API calls. To give it context, we send the full history of messages every time. This is how it "remembers" its previous attempts and errors.
 
 ---
 
