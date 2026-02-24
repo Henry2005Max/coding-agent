@@ -25,3 +25,6 @@ CPU_TIME_LIMIT = 5  # seconds of actual CPU time
 MEMORY_LIMIT_MB = 256  # megabytes
 FILE_SIZE_LIMIT_MB = 10  # megabytes per file
 EXECUTION_TIMEOUT = 10  # wall-clock seconds
+
+# Memory Configuration
+SHORT_TERM_MEMORY_SIZE = 5  # Number of attempts to keep in memory
