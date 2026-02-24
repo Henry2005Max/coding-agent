@@ -468,6 +468,29 @@ Integrated Python's unittest framework. Agent now writes tests alongside code an
 
 ---
 
+Day 4 complete: Short-term memory with reflection and pattern detection
+
+New features:
+- src/memory.py: ShortTermMemory class stores last 5 attempts
+- Attempt dataclass with structured attempt data  
+- Pattern detection: same_error, same_test_failure, no_progress
+- Progress tracking: improving/regressing/stable/mixed
+- build_reflection_prompt() analyzes failures before next attempt
+- Agent sees warnings when repeating mistakes
+
+Integration:
+- Updated build_user_prompt() to use memory instead of plain history
+- run_agent() creates memory, stores attempts, shows stats
+- parse_test_results() extracts test data from output
+- Memory summary displayed after each iteration
+
+Example:
+Before: Blind trial-and-error, repeats same mistakes
+After: "⚠️ WARNING: Same test failing repeatedly. Focus on fixing that test."
+
+Days completed: 4/7
+
+
 ## Security Notes
 
 - `.env` is in `.gitignore` — your API key is never pushed to GitHub
