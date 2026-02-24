@@ -203,7 +203,7 @@ Entry point. Handles:
 | Day 1 | Project structure, config, executor, agent loop, main entry point | ✅ Complete |
 | Day 2 | Execution sandbox with CPU/memory limits | ✅ Complete |
 | Day 3 | Test runner + structured failure detection | ✅ Complete |
-| Day 4 | Short-term memory + reflection mechanism |  Upcoming |
+| Day 4 | Short-term memory + reflection mechanism | ✅ Complete |
 | Day 5 | Long-term memory with vector embeddings |  Upcoming |
 | Day 6 | Circuit breaker + advanced safety layer |  Upcoming |
 | Day 7 | Polish, CLI improvements, full demo |  Upcoming |
