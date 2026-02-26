@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 
-@dataclass
+@dataclass 
 class Attempt:
     """Represents a single attempt by the agent"""
     iteration: int
