@@ -28,3 +28,8 @@ EXECUTION_TIMEOUT = 10  # wall-clock seconds
 
 # Memory Configuration
 SHORT_TERM_MEMORY_SIZE = 5  # Number of attempts to keep in memory
+
+# Long-Term Memory Configuration
+LONG_TERM_MEMORY_PATH = "memory/solutions.json"
+SIMILARITY_THRESHOLD = 0.3  # Minimum 30% similarity to retrieve
+MAX_SIMILAR_SOLUTIONS = 2  # Show top 2 similar solutions
