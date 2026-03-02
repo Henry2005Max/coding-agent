@@ -4,12 +4,13 @@ import re
 import os
 from datetime import datetime
 from rich.console import Console
-from src.test_runner import run_tests, TestResult
 from rich.panel import Panel
 from rich.syntax import Syntax
 from src.config import ANTHROPIC_API_KEY, MODEL, MAX_ITERATIONS, MAX_TOKENS
 from src.executor import execute_code, is_code_safe, ExecutionResult
+from src.test_runner import run_tests, TestResult
 from src.memory import ShortTermMemory, Attempt, build_reflection_prompt
+from src.long_term_memory import LongTermMemory, Solution, build_retrieval_context
 
 console = Console()
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -77,9 +78,14 @@ When you respond, always:
 """
 
 
-def build_user_prompt(goal: str, memory: ShortTermMemory) -> str:
-    """Build the prompt including reflection and history from memory."""
+def build_user_prompt(goal: str, memory: ShortTermMemory, long_term_memory: LongTermMemory) -> str:
+    """Build the prompt including reflection, history, and similar past solutions."""
     prompt = f"Goal: {goal}\n\n"
+
+    # Check for similar past solutions
+    similar = long_term_memory.find_similar(goal, top_k=2, min_similarity=0.3)
+    if similar:
+        prompt += build_retrieval_context(similar)
 
     if memory.count() == 0:
         prompt += "This is your first attempt. Write code with tests to achieve the goal."
@@ -117,25 +123,19 @@ def build_user_prompt(goal: str, memory: ShortTermMemory) -> str:
 
 def run_agent(goal: str):
     """
-    The main agent loop with memory and reflection.
+    The main agent loop.
     Plan → Execute → Test → Reflect → Repeat until success or max iterations.
     """
     console.print(Panel(f"[bold green]GOAL:[/bold green] {goal}", title="Coding Agent Starting"))
 
-    # Initialize short-term memory
-    memory = ShortTermMemory(max_size=5)
+    history = []
     messages = []
 
     for iteration in range(1, MAX_ITERATIONS + 1):
         console.print(f"\n[bold yellow]--- Iteration {iteration}/{MAX_ITERATIONS} ---[/bold yellow]")
-        
-        # Show memory summary if we have previous attempts
-        if memory.count() > 0:
-            summary = memory.get_summary()
-            console.print(f"[dim]Memory: {summary['successful_attempts']} succeeded, {summary['failed_attempts']} failed | Progress: {summary['progress']}[/dim]")
 
-        # Build the prompt with reflection
-        user_prompt = build_user_prompt(goal, memory)
+        # Build the prompt for this iteration
+        user_prompt = build_user_prompt(goal, history)
 
         # Add to message history (this is how Claude tracks conversation)
         messages.append({"role": "user", "content": user_prompt})
@@ -152,21 +152,14 @@ def run_agent(goal: str):
         assistant_message = response.content[0].text
         messages.append({"role": "assistant", "content": assistant_message})
 
-        console.print(f"\n[bold cyan]Claude's response:[/bold cyan] {assistant_message[:200]}...")
+        console.print(f"\n[bold cyan]Claude says:[/bold cyan] {assistant_message[:200]}...")
 
         # Extract code from response
         code = extract_code(assistant_message)
 
         if not code:
             console.print("[bold red]No code found in response. Retrying...[/bold red]")
-            # Store failed attempt in memory
-            memory.add(Attempt(
-                iteration=iteration,
-                code="",
-                success=False,
-                output="",
-                error="No code block returned by Claude"
-            ))
+            history.append({"code": "none", "success": False, "output": "", "error": "No code block returned"})
             continue
 
         # Show the code
@@ -176,92 +169,35 @@ def run_agent(goal: str):
         is_safe, safety_message = is_code_safe(code)
         if not is_safe:
             console.print(f"[bold red]SAFETY BLOCK:[/bold red] {safety_message}")
-            memory.add(Attempt(
-                iteration=iteration,
-                code=code,
-                success=False,
-                output="",
-                error=safety_message
-            ))
+            history.append({"code": code, "success": False, "output": "", "error": safety_message})
             continue
 
         # Execute the code
         console.print("[dim]Executing code...[/dim]")
         result = execute_code(code)
 
-        # Parse test results if present
-        test_results = None
-        if "tests passed" in result.output.lower() or "tests failed" in result.error.lower():
-            # Extract test results from output/error
-            test_results = parse_test_results(result)
-
-        # Store attempt in memory
-        memory.add(Attempt(
-            iteration=iteration,
-            code=code,
-            success=result.success,
-            output=result.output,
-            error=result.error,
-            test_results=test_results
-        ))
-
-        # Log this attempt to disk
+        # Log this attempt
         log_attempt(goal, iteration, code, result)
 
         # Show result
         if result.success:
             console.print(Panel(
-                f"[bold green]SUCCESS[/bold green]\n{result.output}\nTime: {result.execution_time:.2f}s",
+                f"[bold green]SUCCESS[/bold green]\nOutput: {result.output}\nTime: {result.execution_time:.2f}s",
                 title="Result"
             ))
-            console.print(f"\n[bold green]✅ Goal achieved in {iteration} iteration(s)![/bold green]")
-            
-            # Show final memory summary
-            summary = memory.get_summary()
-            console.print(f"[dim]Final stats: {summary['total_attempts']} attempts, {summary['successful_attempts']} succeeded[/dim]")
+            console.print(f"\n[bold green]Goal achieved in {iteration} iteration(s)![/bold green]")
             return True
         else:
             console.print(Panel(
-                f"[bold red]FAILED[/bold red]\n{result.error}\nTime: {result.execution_time:.2f}s",
+                f"[bold red]FAILED[/bold red]\nError: {result.error}\nTime: {result.execution_time:.2f}s",
                 title="Result"
             ))
-
-    console.print(f"\n[bold red]❌ Agent stopped after {MAX_ITERATIONS} iterations without success.[/bold red]")
-    
-    # Show final memory summary
-    summary = memory.get_summary()
-    console.print(f"[dim]Final stats: {summary['total_attempts']} attempts, progress was '{summary['progress']}'[/dim]")
-    return False
-
-
-def parse_test_results(result: ExecutionResult) -> dict:
-    """Parse test results from executor output/error"""
-    import re
-    
-    # Try to extract from output first
-    text = result.output + "\n" + result.error
-    
-    # Look for "X/Y passed" pattern
-    match = re.search(r'(\d+)/(\d+)\s+passed', text)
-    if match:
-        passed = int(match.group(1))
-        total = int(match.group(2))
-        failed = total - passed
-        
-        # Try to extract failure details
-        failures = []
-        failure_pattern = r'❌\s+(.+?)\n\s+(.+?)(?=\n\n|$)'
-        for fail_match in re.finditer(failure_pattern, text, re.DOTALL):
-            failures.append({
-                'test_name': fail_match.group(1).strip(),
-                'message': fail_match.group(2).strip()
+            history.append({
+                "code": code,
+                "success": False,
+                "output": result.output,
+                "error": result.error
             })
-        
-        return {
-            'total_tests': total,
-            'passed': passed,
-            'failed': failed,
-            'failures': failures
-        }
-    
-    return None
+
+    console.print(f"\n[bold red]Agent stopped after {MAX_ITERATIONS} iterations without success.[/bold red]")
+    return False
