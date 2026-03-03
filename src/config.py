@@ -33,3 +33,12 @@ SHORT_TERM_MEMORY_SIZE = 5  # Number of attempts to keep in memory
 LONG_TERM_MEMORY_PATH = "memory/solutions.json"
 SIMILARITY_THRESHOLD = 0.3  # Minimum 30% similarity to retrieve
 MAX_SIMILAR_SOLUTIONS = 2  # Show top 2 similar solutions
+
+# Circuit Breaker Configuration
+MAX_CONSECUTIVE_FAILURES = 3  # Open circuit after this many failures
+FAILURE_WINDOW_MINUTES = 5  # Time window for tracking failures
+MAX_ATTEMPTS_PER_WINDOW = 10  # Max attempts allowed in window
+
+# Rate Limiter Configuration
+MAX_API_REQUESTS = 20  # Maximum API requests
+RATE_LIMIT_WINDOW_SECONDS = 60  # Per this many seconds
