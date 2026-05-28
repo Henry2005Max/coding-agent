@@ -1,4 +1,3 @@
-
 """
 Coding Agent - A self-improving AI coding assistant
 Writes code, runs tests, learns from failures, and improves over time.
