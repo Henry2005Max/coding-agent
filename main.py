@@ -27,7 +27,7 @@ def show_banner():
     banner = """
     ╔═══════════════════════════════════════════════╗
     ║                                               ║
-    ║       🤖  SELF-IMPROVING CODING AGENT  🤖      ║
+    ║       🤖  SELF-IMPROVING CODING AGENT  🤖     ║
     ║                                               ║
     ║   Writes code • Runs tests • Learns • Fixes   ║
     ║                                               ║
