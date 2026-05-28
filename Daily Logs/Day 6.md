@@ -1,7 +1,7 @@
 ## Day 6 — Circuit Breaker + Advanced Safety Layer
 
 **Date:** March 3rd , 2026  
-**Duration:** ..4 hours  
+**Duration:** 4 hours  
 **Status:** ✅ Complete
 
 ### Goals
