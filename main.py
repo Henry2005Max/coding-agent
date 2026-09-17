@@ -5,7 +5,7 @@ Writes code, runs tests, learns from failures, and improves over time.
 
 import sys
 import argparse
-from rich.console import Console
+from rich.console import Console 
 from rich.panel import Panel
 from rich.markdown import Markdown
 from src.agent import run_agent
